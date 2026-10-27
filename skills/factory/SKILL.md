@@ -30,13 +30,11 @@ The plan is done when the ids are 1..n in order and each parent is 0 or a lower 
 
 **State.** Keep for each subtask: the round number, the open findings, the Builder's agent id, and one history line per round with the head SHA, such as `Round 2 (a1b2c3d): review PASS`. The history goes into the PR body, so the PR holds the state if this session stops.
 
-A **round** is one Build and one push. Run rounds 1 to 5. A user's answer to a blocker, a rebase and a push retry stay inside the current round.
+A **round** is one Build and one push. Run rounds 1 to 5. A user's answer to a blocker, a rebase and a push retry stay inside the current round. When round 5 ends without a pass, the subtask is **stopped**: publish it as a draft PR with the open findings under "Open findings" in its body. Its push skips the review, with `FACTORY_REVIEW=off`.
 
 1. **Build.** In round 1, spawn `factory-builder` with the prompt and keep its agent id. In later rounds, send the open findings, verbatim, to that agent with `SendMessage`, so it keeps its context. If that agent is gone, spawn a new one with the prompt and the open findings. The Build is done on `STATUS: READY`. Record the head SHA from `git -C <worktree> rev-parse HEAD`.
 2. **Push.** In the worktree, run `git push --force-with-lease -u origin <branch>` in the background. Its pre-push hook runs `factory-reviewer`. When the push fails with `VERDICT: CHANGES`, the blockers in its output become the open findings: start the next round. When it fails for another reason, send the output to the Builder and push again. The Push is done when it goes through.
 3. **Publish.** Open a PR with `gh pr create --assignee @me --base <base branch>`, or replace the body of the existing PR with `gh pr edit --body-file`. The title is the subject of the first commit on the branch. Write the body in the format of `.github/pull_request_template.md`, fill "How was it tested?" from the Builder's checks, and add a "Factory rounds" section with the history. The subtask is **ready**.
-
-When round 5 ends without a pass, the subtask is **stopped**: push with `FACTORY_REVIEW=off git push --force-with-lease -u origin <branch>`, and open the PR with `--draft`, with the open findings under "Open findings" in its body.
 
 ## Rules
 
