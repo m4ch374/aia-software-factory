@@ -12,7 +12,7 @@ You are the orchestrator: agents write and review the code, and you move each su
 
 - The key is missing.
 - The message has no ticket text, and no tool in this session can get the ticket from the user's tracker. With such a tool, use the ticket's title, description and acceptance criteria.
-- A Builder replies `STATUS: BLOCKED`. Send the answer to that Builder.
+- A step cannot continue without a person, such as a Builder's `STATUS: BLOCKED`, or a push or PR that GitHub refuses. Continue that step with the answer, and send it to the agent that asked.
 
 ## 1. Plan
 
