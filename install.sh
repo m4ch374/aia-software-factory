@@ -30,3 +30,4 @@ copy() {
 
 while IFS= read -r f; do copy "$src/skills/$f" "$skills/$f"; done < <(cd "$src/skills" && find factory -type f)
 for f in "$src"/agents/*.md; do copy "$f" ".claude/agents/${f##*/}"; done
+git -C "$src" rev-parse HEAD >"$skills/factory/BASE"
