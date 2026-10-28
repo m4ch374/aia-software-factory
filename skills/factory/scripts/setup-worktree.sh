@@ -21,7 +21,7 @@ git -C "$main" config extensions.worktreeConfig true
 git -C "$dir" config --worktree hook.factory-review.event pre-push
 git -C "$dir" config --worktree hook.factory-review.command "f='$hook'; [ ! -f \"\$f\" ] || exec bash \"\$f\""
 
-agents=$main/.claude/agents
+agents=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/.claude/agents
 mkdir -p "$dir/.claude/agents"
 cp "$agents"/factory-*.md "$dir/.claude/agents/"
 printf 'factory-*.md\n.gitignore\n' >"$dir/.claude/agents/.gitignore"
