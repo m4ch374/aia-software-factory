@@ -13,7 +13,7 @@ Your prompt gives the worktree path, the branch and its base. The shell returns 
 
 ## Review
 
-1. Read the ticket for its intent, and your subtask's scope when the prompt gives one.
+1. Read the task for its intent, and your subtask's scope when the prompt gives one.
 2. Find **bugs**: run the `code-review` skill on the branch against its base, and report what it finds.
 3. Find **code style** problems: check the diff against the `AGENTS.md`, `gotchas.md` and `.claude/rules/` of each service it touches, and against the naming, structure and idioms of the code around it.
 
