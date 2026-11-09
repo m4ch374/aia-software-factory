@@ -10,24 +10,36 @@ Usage: `/factory <task>`, where `<task>` is the task's description, or a pointer
 
 The task's **name** is its ticket ID when it has one, such as `CB-123`, else a short kebab-case slug of its title, such as `upload-size-limits`. It uses only letters, digits, `-` and `_`.
 
-You are the orchestrator: agents write and review the code, and you move each subtask through its steps until the run is done. Run autonomously, and record each decision you make in the PR. Ask the user in two cases only, and wait for the answer:
+You are the orchestrator: you grill the user on the task, then agents write and review the code, and you move each subtask through its steps until the run is done. After the Grill, run autonomously, and record each decision you make in the PR. Ask the user in two cases only, and wait for the answer:
 
 - The task is missing, or no tool in this session can get the description behind its pointer.
 - A step cannot continue without a person, such as a Builder's `STATUS: BLOCKED`, or a push or PR that GitHub refuses. Continue that step with the answer, and send it to the agent that asked.
 
-## 1. Plan
+## 1. Grill
 
-Spawn a `Plan` agent with this prompt, then the task description verbatim:
+Grill the user on the task with the `grilling` skill, the skill behind `/grill-me`. Settle behaviour, scope, edge cases and design; the Plan settles the PR split and order. When this session has no `grilling` skill, ask the user to install it, and wait:
+
+```bash
+npx skills@latest add mattpocock/skills --skill grilling -a claude-code
+```
+
+Then read the `SKILL.md` that it installed, and follow it.
+
+The Grill is done when the user accepts your summary of the decisions. The **brief** is the task description, then a "Decisions" section with that summary. Every later step uses the brief.
+
+## 2. Plan
+
+Spawn a `Plan` agent with this prompt, then the brief verbatim:
 
 > Split this task into subtasks, one PR per subtask. Estimate the lines the task changes, without tests, generated files and lock files. Use one subtask when the estimate is 300 lines or less. Above 300, split by service first: one subtask per service that the task changes, such as one for `client/` and one for `legal-frontdoor/`. When one service still has more than 300 lines, split its work into vertical slices: each slice delivers one acceptance criterion, or a usable part of one, through every layer it needs, never one layer such as all the models or all the routes. Each subtask, merged after its parent, leaves main working. Subtasks are built at the same time where they can be, then stacked in id order for review, so number them 1, 2, 3 in the order a reviewer reads them. A subtask that cannot be built or tested without the code of another subtask sets parent to that subtask's id, which is lower than its own. Every other subtask sets parent to 0 and starts from origin/main, even when it changes the same files as another subtask. criteria are the task's acceptance criteria that the subtask delivers, or the outcomes it asks for when it lists none; each criterion belongs to exactly one subtask. End your reply with a JSON array of `{id, parent, title, scope, criteria}`.
 
 The plan is done when the ids are 1..n in order and each parent is 0 or a lower id. Show it to the user as a table, then continue. A plan with more than one subtask is **stacked**: read [stacked.md](stacked.md) now, and apply it to every step below.
 
-## 2. Each subtask
+## 3. Each subtask
 
 **Setup.** From the repository root, run `bash .agents/skills/factory/scripts/setup-worktree.sh <name>`. It prints the worktree path and installs the review hook. The branch is `factory/<name>`, and the base is `origin/main`.
 
-**Prompt.** Every agent prompt is `Task: <name>. Worktree: <path>. Branch: <branch>. Base: <base>.`, then the **work**: the task description. Write the work to the path that `git -C <worktree> rev-parse --git-path factory-review.md` prints. The review hook reads it from there.
+**Prompt.** Every agent prompt is `Task: <name>. Worktree: <path>. Branch: <branch>. Base: <base>.`, then the **work**: the brief. Write the work to the path that `git -C <worktree> rev-parse --git-path factory-review.md` prints. The review hook reads it from there.
 
 **State.** Keep for each subtask: the round number, the open findings, the Builder's agent id, and one history line per round with the head SHA, such as `Round 2 (a1b2c3d): review PASS`. The history goes into the PR body, so the PR holds the state if this session stops.
 
