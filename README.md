@@ -31,7 +31,7 @@ The repository root must have a `.agents` or a `.claude` folder. The script writ
 | `.claude/agents/factory-builder.md` | The Builder agent |
 | `.claude/agents/factory-reviewer.md` | The Reviewer agent |
 
-The skill folder has a `standards/` folder with one file per service, such as `standards/legal-frontdoor.md`. The Plan agent designs to that file and the Reviewer checks against it. To add standards for a service, add `<service>.md` there, named after the service's top folder.
+The skill folder has a `standards/` folder: `CODING_STANDARDS.md` holds the rules for every service, and `<service>.md` holds the rules for one service, such as `legal-frontdoor.md`. The Plan agent designs to these files and the Reviewer checks against them. To add rules for a service, add `<service>.md` there, named after the service's top folder.
 
 To update, run the same command again. When a file is different from the new version, the script asks before it replaces the file.
 
