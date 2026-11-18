@@ -6,6 +6,7 @@ remote=${1:-origin}
 zero=0000000000000000000000000000000000000000
 work=$(git rev-parse --git-path factory-review.md)
 last=$(git rev-parse --git-path factory-review.last)
+standards=$(cd "$(dirname "$0")/.." && pwd)/standards
 
 say() { printf '%s\n' "$*" >&2; }
 
@@ -36,7 +37,7 @@ $(tail -n +2 "$last")"
   for c in diff log show blame range-diff merge-base rev-parse; do allowed+=("Bash(command git $c *)"); done
 
   say "factory-review: reviewing $branch ($base_sha..$sha); this takes a few minutes"
-  out=$(printf 'Task: %s. Worktree: %s. Branch: %s. Base: %s.\n%s\n%s\n' "$task" "$PWD" "$branch" "$base" "$(cat "$work")" "$since" |
+  out=$(printf 'Task: %s. Worktree: %s. Branch: %s. Base: %s. Standards: %s.\n%s\n%s\n' "$task" "$PWD" "$branch" "$base" "$standards" "$(cat "$work")" "$since" |
     claude -p --agent factory-reviewer --output-format stream-json --verbose --allowedTools "${allowed[@]}" --disallowedTools Edit Write NotebookEdit |
     tee >(jq -r --unbuffered 'select(.type == "assistant") | .message.content[] | if .type == "text" then .text elif .type == "tool_use" then "factory-review: \(.name) \(.input.command // .input.file_path // .input.pattern // .input.skill // "")" else empty end' >&2) |
     jq -r 'select(.type == "result") | .result')
