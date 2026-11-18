@@ -25,6 +25,8 @@ npx skills@latest add mattpocock/skills --skill grilling -a claude-code
 
 Then read the `SKILL.md` that it installed, and follow it.
 
+Settle behaviour, scope and edge cases first. Then give the user two or three possible solutions: for each one, the approach in one or two sentences, and its trade-off. Recommend one. Then grill the design of the solution that the user chooses. The choice goes into the summary, and the Plan designs that solution.
+
 The Grill is done when the user accepts your summary of the decisions. The **brief** is the task description, then a "Decisions" section with that summary. Every later step uses the brief.
 
 ## 2. Plan
