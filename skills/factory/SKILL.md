@@ -31,9 +31,9 @@ The Grill is done when the user accepts your summary of the decisions. The **bri
 
 Spawn a `Plan` agent with this prompt, then the brief verbatim:
 
-> Split this task into subtasks, one PR per subtask. Estimate the lines the task changes, without tests, generated files and lock files. Use one subtask when the estimate is 300 lines or less. Above 300, split by service first: one subtask per service that the task changes, such as one for `client/` and one for `legal-frontdoor/`. When one service still has more than 300 lines, split its work into vertical slices: each slice delivers one acceptance criterion, or a usable part of one, through every layer it needs, never one layer such as all the models or all the routes. Each subtask, merged after its parent, leaves main working. Subtasks are built at the same time where they can be, then stacked in id order for review, so number them 1, 2, 3 in the order a reviewer reads them. A subtask that cannot be built or tested without the code of another subtask sets parent to that subtask's id, which is lower than its own. Every other subtask sets parent to 0 and starts from origin/main, even when it changes the same files as another subtask. criteria are the task's acceptance criteria that the subtask delivers, or the outcomes it asks for when it lists none; each criterion belongs to exactly one subtask. End your reply with a JSON array of `{id, parent, title, scope, criteria}`.
+> First write the design, in under 300 words: the approach, the name of each new file, function and field, the folder each one goes in, the existing code it reuses, and what it leaves out. Follow the `CODING_STANDARDS.md` of each service the task changes, when it has one. Then split this task into subtasks, one PR per subtask. Estimate the lines the task changes, without tests, generated files and lock files. Use one subtask when the estimate is 300 lines or less. Above 300, split by service first: one subtask per service that the task changes, such as one for `client/` and one for `legal-frontdoor/`. When one service still has more than 300 lines, split its work into vertical slices: each slice delivers one acceptance criterion, or a usable part of one, through every layer it needs, never one layer such as all the models or all the routes. Each subtask, merged after its parent, leaves main working. Subtasks are built at the same time where they can be, then stacked in id order for review, so number them 1, 2, 3 in the order a reviewer reads them. A subtask that cannot be built or tested without the code of another subtask sets parent to that subtask's id, which is lower than its own. Every other subtask sets parent to 0 and starts from origin/main, even when it changes the same files as another subtask. criteria are the task's acceptance criteria that the subtask delivers, or the outcomes it asks for when it lists none; each criterion belongs to exactly one subtask. End your reply with a JSON array of `{id, parent, title, scope, criteria}`.
 
-The plan is done when the ids are 1..n in order and each parent is 0 or a lower id. Show it to the user as a table, then continue. A plan with more than one subtask is **stacked**: read [stacked.md](stacked.md) now, and apply it to every step below.
+The plan is done when the ids are 1..n in order and each parent is 0 or a lower id. Add the design to the brief as a "Design" section. Show the design and the plan table to the user, then continue without waiting. A plan with more than one subtask is **stacked**: read [stacked.md](stacked.md) now, and apply it to every step below.
 
 ## 3. Each subtask
 
@@ -45,15 +45,24 @@ The plan is done when the ids are 1..n in order and each parent is 0 or a lower 
 
 A **round** is one Build and one push. Run rounds 1 to 5. A user's answer, a rebase and a push retry stay inside the current round. When round 5 ends without a pass, the subtask is **stopped**: publish it as a draft PR with the open findings under "Open findings" in its body. Its push skips the review, with `FACTORY_REVIEW=off`.
 
-1. **Build.** In round 1, spawn `factory-builder` with the prompt and keep its agent id. In later rounds, send the open findings, verbatim, to that agent with `SendMessage`, so it keeps its context. If that agent is gone, spawn a new one with the prompt and the open findings. The Build is done on `STATUS: READY`. Record the head SHA from `git -C <worktree> rev-parse HEAD`.
+1. **Build.** In round 1, spawn `factory-builder` with the prompt and keep its agent id. In later rounds, send the open findings, verbatim, to that agent with `SendMessage`, so it keeps its context. If that agent is gone, spawn a new one with the prompt and the open findings. The Build is done on `STATUS: READY`. Write the proof lines of its reply to a "Proof" section of the work file, in place of the old ones, so the Reviewer sees them. Record the head SHA from `git -C <worktree> rev-parse HEAD`.
 2. **Push.** In the worktree, run `git push --force-with-lease -u origin <branch>` in the background. Its pre-push hook runs `factory-reviewer`. When the push fails with `VERDICT: CHANGES`, the blockers in its output become the open findings: start the next round. When it fails for another reason, send the output to the Builder and push again. The Push is done when it goes through.
-3. **Publish.** Open a PR with `gh pr create --assignee @me --base <base branch>`, or replace the body of the existing PR with `gh pr edit --body-file`. The title is the subject of the first commit on the branch. Write the body in the format of `.github/pull_request_template.md`, fill "How was it tested?" from the Builder's checks, and add a "Factory rounds" section with the history. The subtask is **ready**.
+3. **Publish.** Open a PR with `gh pr create --assignee @me --base <base branch>`, or replace the body of the existing PR with `gh pr edit --body-file`. The title is the subject of the first commit on the branch. Write the body again from the current diff on each push, in the format of `.github/pull_request_template.md`: start "How does it address the change/issue?" with the Design, fill "How was it tested?" from the Builder's checks and proof lines, with each `NOT RUN` line as it is, and add a "Factory rounds" section with the history. The subtask is **ready**.
+
+## 4. Follow-up
+
+A ready subtask stays in the run until its PR is merged or closed. A change that the user asks for, a PR review comment and a CI failure are each a **request**, and each goes through the same steps as a finding:
+
+1. Add the request to a "Decisions" section of the work file, with the date and who made it. Add every decision the user makes there too, such as "do not fix this" or "this check is removed". The Reviewer reads only the work file, so a decision that is not there gets blocked again.
+2. Send the request to the subtask's Builder as the open findings, and run Build, Push and Publish. The rounds count from 1 again for each request.
+
+When the Reviewer blocks something that the user decided, the decision is missing from the work file: add it and push again. `FACTORY_REVIEW=off` is only for a stopped subtask.
 
 ## Rules
 
-- The Builder makes every commit. Push only to this run's `factory/<name>` branches. Merges and deploys belong to people.
+- The Builder makes every commit, also after the PR is open: you change no code. Push only to this run's `factory/<name>` branches. Merges and deploys belong to people.
 - Tell the user one line per step, such as `CB-1872 subtask 2: round 2, review CHANGES (1 blocker) → Builder`.
 
 ## Finish
 
-The run is done when every subtask is ready, stopped or skipped. Report one line per subtask: its id, title, status, the reason when not ready, and the PR link.
+The run is done when every subtask is ready, stopped or skipped. Report one line per subtask: its id, title, status, the reason when not ready, each criterion that is `NOT RUN`, and the PR link. Then handle each request by the Follow-up step.

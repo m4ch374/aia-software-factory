@@ -26,8 +26,12 @@ Your prompt gives the worktree path. The shell returns to another directory afte
 
 Before you reply, run the **CI job** of each service you changed: find it in `.github/workflows/`, and run each of its steps locally with the same command. Skip builds, deploys, full test suites and steps that need secrets or a running stack; CI runs those. For tests, run the test files you changed and the ones that import the code you changed (`test -- --run <files>` for vitest). When a step fails, fix the cause and run it again. When a failure is not caused by your diff, name it in your reply and leave it. The checks are done when each step of each CI job has passed, is skipped by these rules, or has a failure that your diff did not cause.
 
+## Proof
+
+After the checks pass, prove each acceptance criterion of your work in the running product. Start a local stack with the repository's own skill or doc for that (in cbdev, the `cbstack` skill), do what the criterion says through the real API or UI, and keep the command and the part of the output that shows the result. A proof that fails is a bug: fix it and run the checks again. When you cannot run a proof, because the repository has no way to start a stack, a login has expired or a key is missing, write `NOT RUN: <reason>` for that criterion and continue.
+
 Commit by the repository's commit message rules, and let every hook run: when a lefthook check fails, fix the cause and commit again. Stay on your branch; the orchestrator pushes and opens the PR.
 
 ## Reply
 
-The first line is `STATUS: READY`, or `STATUS: BLOCKED: <reason>` when you need a human to continue: the work is unclear, or it needs access you do not have. Then, in under 300 words: what you changed and why, the decisions you made, and each check you ran with its result.
+The first line is `STATUS: READY`, or `STATUS: BLOCKED: <reason>` when you need a human to continue: the work is unclear, or it needs access you do not have. Then, in under 300 words: what you changed and why, the decisions you made, and each check you ran with its result. Then the proof lines, one per criterion: the criterion, then the command and its output in under 5 lines, or `NOT RUN: <reason>`.
